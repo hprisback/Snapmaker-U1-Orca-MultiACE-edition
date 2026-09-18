@@ -62,6 +62,7 @@
 #include "NetworkTestDialog.hpp"
 #include "ConfigWizard.hpp"
 #include "Widgets/WebView.hpp"
+#include "ModelMall.hpp"
 #include "DailyTips.hpp"
 #include "FilamentMapDialog.hpp"
 
@@ -2564,6 +2565,27 @@ static wxMenu* generate_help_menu()
         [](wxCommandEvent&) { wxGetApp().keyboard_shortcuts(); });
     // Show Beginner's Tutorial
     append_menu_item(helpMenu, wxID_ANY, _L("Setup Wizard"), _L("Setup Wizard"), [](wxCommandEvent &) {wxGetApp().ShowUserGuide();});
+
+    append_menu_item(helpMenu, wxID_ANY, _L("MakerWorld"), _L("Browse MakerWorld models inside the slicer"),
+        [](wxCommandEvent &) {
+            static ModelMallDialog* s_mw_dialog = nullptr;
+            if (s_mw_dialog == nullptr) {
+                s_mw_dialog = new ModelMallDialog();
+                if (s_mw_dialog->m_browser != nullptr) {
+                    s_mw_dialog->m_browser->Bind(wxEVT_WEBVIEW_NAVIGATING, [](wxWebViewEvent &e) {
+                        std::string nav_url(e.GetURL().ToUTF8());
+                        if (nav_url.rfind("orcaslicer://open", 0) == 0 || nav_url.rfind("bambustudio://open", 0) == 0) {
+                            e.Veto();
+                            wxGetApp().start_download(nav_url);
+                        }
+                    });
+                }
+                s_mw_dialog->Bind(wxEVT_CLOSE_WINDOW, [](wxCloseEvent &) { if (s_mw_dialog) s_mw_dialog->Hide(); });
+            }
+            s_mw_dialog->go_to_mall("https://makerworld.com/en?from=orcaslicer");
+            s_mw_dialog->Show();
+            s_mw_dialog->Raise();
+        });
 
     helpMenu->AppendSeparator();
 
